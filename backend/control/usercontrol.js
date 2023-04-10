@@ -41,11 +41,11 @@ const upload = (req, res) => {
 const addProduct = (req, res) => {
   productDetails.find((error, result) => {
     if (error) {
-      res.render({ status: false, message: "item displayed unsuccessful" });
+      res.send({ status: false, message: "item displayed unsuccessful" });
       console.log(error);
     } else {
       console.log(result);
-      res.render({
+      res.send({
         status: true,
         message: "item displayed successful",
         result
@@ -53,6 +53,7 @@ const addProduct = (req, res) => {
     }
   });
 };
+
 const registerUser = (req, res) => {
   console.log(req.body);
   let form = new SignUPdetails(req.body);
@@ -64,6 +65,7 @@ const registerUser = (req, res) => {
     }
   });
 };
+
 const signinuser = (req, res) => {
   console.log(req.body);
   let password = req.body;

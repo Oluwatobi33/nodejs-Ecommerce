@@ -22,7 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }))
 const { upload, uploadImage, addProduct, registerUser, signinuser } = require('./control/usercontrol')
 
 app.post("/displayPro", uploadImage, upload)
-app.get("/Home", addProduct)
+app.get("/dashboard", addProduct)
 app.post("/signup", registerUser)
 app.post("/signin", signinuser)
 
