@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
+const { genSalt, hash } = require("bcrypt")
 const bcrypt = require("bcrypt");
-
+const { verify } = require("crypto");
 const UserSchema = new mongoose.Schema({
   productname: String,
   price: String,
@@ -8,47 +9,48 @@ const UserSchema = new mongoose.Schema({
   setFile: String,
 
 });
+
 const SignUpSchema = new mongoose.Schema({
-  Name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  phoneno: { type: String, required: true },
-  DateCreated: { type: String, required: true },
+  Name: String,
+  email: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  phoneno: String,
+  password: {
+    type: String,
+  },
+  DateCreated: String,
+  tokens: [
+    {
+      token: {
+        type: String,
+        required: true
+      }
+
+    }
+  ],
+  verifytoken: {
+    type: String,
+
+  }
+
 });
-// SignUpSchema.validatePassword = function (password, callback) {
-//   console.log(this);
-//   bcrypt.compare(password.this.password, (err, same) => {
-//     console.log(same);
-//     if (!err) {
-//       callback(err, same);
-//     } else {
-//       next();
-//     }
-//   });
-// };
 
 SignUpSchema.pre("save", async function (next) {
-  let { password } = this;
-  console.log(password);
-  let salt = await bcrypt.genSalt(10);
-  console.log(salt);
-  let hashed = await bcrypt.hash(password, salt);
-  console.log(hashed);
-  this.password = hashed;
-  next();
-});
-// let saltRound = 10;
-// SignUpSchema.pre("save", function (next) {
-//   console.log(this.password);
-//   bcrypt.hash(this.password, saltRound, (err, hashedPassword) => {
-//     if (!err) {
-//       this.password = hashedPassword;
-//       next();
-//     }
-//   });
-// });
+  const { password } = this
+  const salt = await genSalt(10)
+  try {
+    const hashedPassword = await hash(password, salt)
+    this.password = hashedPassword
+    next()
+    console.log(this.password);
+  } catch (error) {
+    console.log(error);
+  }
+})
 
-// userSchema for user Registration
 const RegisterSchema = new mongoose.Schema(
   {
     Name: String,
@@ -75,17 +77,38 @@ const AddtocartSchema = new mongoose.Schema(
       type: String,
       require: true,
     },
-    File: String,
+    setFile: String,
     price: String,
     productname: String,
     description: String
   }
 )
+const AddstripeSchema = new mongoose.Schema({
+  email: String,
+  source: String,
+  name: String,
+  address: String,
+  Country: String,
+  State: String,
 
+  // stripe.customers.create({
+  //   email: req.body.stripeEmail,
+  //   source: req.body.stripeToken,
+  //   name: 'Gourav Hammad',
+  //   address: {
+  //     line1: 'TC 9/4 Old MES colony',
+  //     postal_code: '452331',
+  //     city: 'Indore',
+  //     state: 'Madhya Pradesh',
+  //     country: 'India',
+  //   }
+})
+
+const AddStripeModel = mongoose.model("StripeDetails", AddstripeSchema)
 const AddtocartModel = mongoose.model('Addtocart', AddtocartSchema)
 
 const RegisterModel = mongoose.model('Customer', RegisterSchema)
 const SignUPdetails = mongoose.model("EcommSignup", SignUpSchema);
 const productDetails = mongoose.model("productCollection", UserSchema);
 
-module.exports = { productDetails, SignUPdetails, RegisterModel, AddtocartModel };
+module.exports = { productDetails, SignUPdetails, RegisterModel, AddtocartModel, AddStripeModel };

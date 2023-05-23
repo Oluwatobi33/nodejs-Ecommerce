@@ -1,9 +1,11 @@
 const { express } = require("express");
 const cloudinary = require("cloudinary");
-// const bcrypt = require("bcrypt");
-// const jwt = require('jsonwebtoken')
-const { productDetails, SignUPdetails } = require("../model/usermodel");
+const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken')
+const { productDetails, RegisterModel, AddStripeModel } = require("../model/usermodel");
 const { AddtocartModel } = require('../model/usermodel')
+const stripe = require('stripe')
+
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.API_KEY,
@@ -59,13 +61,17 @@ const addtocart = (req, res) => {
       let addtocart = result[0];
       console.log(addtocart);
       AddtocartModel.create({
-        ...req.body, customerId: customerId, productname: addtocart.productname, price: addtocart.price, File: addtocart.File, description: addtocart.description
+        ...req.body, customerId: customerId, productname: addtocart.productname, price: addtocart.price, setFile: addtocart.setFile, description: addtocart.description
         ,
       }, (err, message) => {
         if (err) {
           console.log(err);
           res.send({ status: false, message: "Add to cart was unsuccessful" })
         } else {
+          if (!result) {
+            res.send({ status: false, result, message: "cart is empty" })
+            console.log(message);
+          }
           res.send({ status: true, result, message: "Add to cart was successful" })
           console.log(message);
         }
@@ -73,6 +79,7 @@ const addtocart = (req, res) => {
     }
   })
 }
+
 const getaddtocart = (req, res) => {
   let customerId = req.body.id
   console.log(customerId);
@@ -80,6 +87,10 @@ const getaddtocart = (req, res) => {
   AddtocartModel.find({ customerId }, (err, result) => {
     if (err) {
     } else {
+      if (!result) {
+        res.send({ status: true, result, message: "AddToCart is empty" })
+      }
+      console.log(result);
       res.send({ status: true, result, message: "AddToCart get was successful" })
     }
   })
@@ -108,22 +119,46 @@ const removeaddtocart = (req, res) => {
     }
   })
 }
-
-const registerUser = (req, res) => {
+const payment = (req, res) => {
+  // Moreover you can take more details from user
+  // like Address, Name, etc from form
+  // stripe.customers.create({
+  //   email: req.body.stripeEmail,
+  //   source: req.body.stripeToken,
+  //   name: 'Gourav Hammad',
+  //   address: {
+  //     line1: 'TC 9/4 Old MES colony',
+  //     postal_code: '452331',
+  //     city: 'Indore',
+  //     state: 'Madhya Pradesh',
+  //     country: 'India',
+  //   }
   console.log(req.body);
-  let form = new SignUPdetails(req.body);
-  form.save((err) => {
+  let form = new AddStripeModel(req.body);
+  form.save((err, result) => {
     if (err) {
       res.send({ status: false, message: "it didn't send" });
     } else {
-      res.send({ status: true, message: "Signup successfully" });
+      res.send({ result, status: true, message: " Saved successfully" });
+    }
+  });
+}
+
+const registerUser = (req, res) => {
+  console.log(req.body);
+  let form = new RegisterModel(req.body);
+  form.save((err, result) => {
+    if (err) {
+      res.send({ status: false, message: "it didn't send" });
+    } else {
+      res.send({ result, status: true, message: "Signup successfully" });
     }
   });
 }
 
 const signinuser = (req, res) => {
   const { email, password } = req.body;
-  SignUPdetails.findOne({ email }, async (err, message) => {
+  RegisterModel.findOne({ email }, async (err, message) => {
     if (err) {
       res.send(err)
       console.log(err);
@@ -143,5 +178,28 @@ const signinuser = (req, res) => {
     }
   })
 }
+const display = (req, res) => {
+  const token = req.headers.authorization.split(' ')[1];
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      res.send({ status: false, message: "Invalid Token" })
+    } else {
+      let id = decoded._id;
+      RegisterModel.find({ _id: id }, (err, result) => {
+        if (err) {
+          res.send(err);
+        } else {
+          if (result.length > 0) {
+            res.send({ result, status: true, message: "Valid Token" })
+          }
+          else {
+            console.log(result);
+            res.send({ message: "empty array" })
+          }
+        }
+      })
+    }
+  })
+}
 
-module.exports = { file, addProduct, registerUser, signinuser, addtocart, Viewproduct, getaddtocart, removeaddtocart };
+module.exports = { file, addProduct, registerUser, signinuser, addtocart, Viewproduct, getaddtocart, removeaddtocart, payment, display };
